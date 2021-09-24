@@ -131,7 +131,8 @@ def train_ch3(net, train_iter, test_iter, loss, num_epoch3, updater):
     for epoch in range(num_epoch3):
         train_metrics = train_epoch_ch3(net, train_iter, loss, updater)
         test_acc = evaluate_accuracy(net, test_iter)
-    train_loss, train_acc = train_metrics
+        train_loss, train_acc = train_metrics
+        print('epoch： %d, loss： %.4f, train_acc： %.3f, test_acc： %.3f' % (epoch + 1, train_loss, train_acc, test_acc))
     assert train_loss < 0.5, train_loss
     assert train_acc <= 1 and train_acc > 0.7, train_acc
     assert test_acc <= 1 and test_acc > 0.7, test_acc
