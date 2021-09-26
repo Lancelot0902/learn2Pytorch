@@ -30,6 +30,12 @@ def sgd(params, lr, batch_size):
             param.grad.zero_()
 
 
+def load_array(data_arrays, batch_size, is_train=True):
+    """ 构造一个基于Pytorch的数据迭代器 """
+    dataset = data.TensorDataset(*data_arrays)  # 表明datat_attays是一个元组
+    return data.DataLoader(dataset, batch_size, shuffle=is_train)   # is_train表示是否希望数据迭代器对象在每个迭代周期内打乱数据
+
+
 def get_fashion_mnist_labels(labels):
     """ 数字标签索引及其文本名称间转换 """
     text_labels = [
