@@ -1,5 +1,10 @@
 import torch
 import torchvision
+import hashlib
+import os
+import tarfile
+import zipfile
+import requests
 from torch.utils import data
 from torchvision import transforms
 
@@ -33,7 +38,9 @@ def sgd(params, lr, batch_size):
 def load_array(data_arrays, batch_size, is_train=True):
     """ 构造一个基于Pytorch的数据迭代器 """
     dataset = data.TensorDataset(*data_arrays)  # 表明datat_attays是一个元组
-    return data.DataLoader(dataset, batch_size, shuffle=is_train)   # is_train表示是否希望数据迭代器对象在每个迭代周期内打乱数据
+    return data.DataLoader(
+        dataset, batch_size,
+        shuffle=is_train)  # is_train表示是否希望数据迭代器对象在每个迭代周期内打乱数据
 
 
 def get_fashion_mnist_labels(labels):
@@ -122,7 +129,9 @@ def train_epoch_ch3(net, train_iter, loss, updater):
             updater.zero_grad()
             lo.backward()
             updater.step()
-            metric.add(float(lo) * len(y), accuracy(y_hat, y), y.size().numel())
+            metric.add(
+                float(lo) * len(y), accuracy(y_hat, y),
+                y.size().numel())
         else:
             # 使用定制的优化器和损失函数
             lo.sum().backward()
@@ -138,7 +147,55 @@ def train_ch3(net, train_iter, test_iter, loss, num_epoch3, updater):
         train_metrics = train_epoch_ch3(net, train_iter, loss, updater)
         test_acc = evaluate_accuracy(net, test_iter)
         train_loss, train_acc = train_metrics
-        print('epoch： %d, loss： %.4f, train_acc： %.3f, test_acc： %.3f' % (epoch + 1, train_loss, train_acc, test_acc))
+        print('epoch： %d, loss： %.4f, train_acc： %.3f, test_acc： %.3f' %
+              (epoch + 1, train_loss, train_acc, test_acc))
     assert train_loss < 0.5, train_loss
     assert train_acc <= 1 and train_acc > 0.7, train_acc
     assert test_acc <= 1 and test_acc > 0.7, test_acc
+
+
+DATA_HUB = dict()
+
+
+def download(name, cache_dir=os.path.join('..', 'data')):
+    """ 下载一个DATA_HUB中的文件并返回本地文件名 """
+    assert name in DATA_HUB, f"{name}不存在于{DATA_HUB}"
+    url, sha1_hash = DATA_HUB[name]
+    os.makedirs(cache_dir, exist_ok=True)
+    fname = os.path.join(cache_dir, url.split('/')[-1])
+    if os.path.exists(fname):
+        sha1 = hashlib.sha1()
+        with open(fname, 'rb') as f:
+            while True:
+                data = f.read(1048576)
+                if not data:
+                    break
+                sha1.update(data)
+        if sha1.hexdigest() == sha1_hash:
+            return fname
+    print(f'正在从{url}下载{fname}...')
+    r = requests.get(url, stream=True, verify=True)
+    with open(fname, 'wb') as f:
+        f.write(r.content)
+    return fname
+
+
+def download_extract(name, folder=None):
+    """下载并解压zip/tar文件。"""
+    fname = download(name)
+    base_dir = os.path.dirname(fname)
+    data_dir, ext = os.path.splitext(fname)
+    if ext == '.zip':
+        fp = zipfile.ZipFile(fname, 'r')
+    elif ext in ('.tar', '.gz'):
+        fp = tarfile.open(fname, 'r')
+    else:
+        assert False, '只有zip/tar文件可以被解压缩。'
+    fp.extractall(base_dir)
+    return os.path.join(base_dir, folder) if folder else data_dir
+
+
+def download_all():
+    """下载DATA_HUB中的所有文件。"""
+    for name in DATA_HUB:
+        download(name)
