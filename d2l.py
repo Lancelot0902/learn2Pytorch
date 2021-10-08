@@ -199,3 +199,13 @@ def download_all():
     """下载DATA_HUB中的所有文件。"""
     for name in DATA_HUB:
         download(name)
+
+
+def corr2d(X, k):
+    """ 计算二维互相关运算 """
+    h, w = k.shape
+    Y = torch.zeros((X.shape[0] - h + 1, X.shape[1] - w + 1))
+    for i in range(Y.shape[0]):
+        for j in range(Y.shape[1]):
+            Y[i, j] = (X[i:i + h, j:j + w] * k).sum()
+    return Y
