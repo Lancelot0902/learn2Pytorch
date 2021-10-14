@@ -209,3 +209,20 @@ def corr2d(X, k):
         for j in range(Y.shape[1]):
             Y[i, j] = (X[i:i + h, j:j + w] * k).sum()
     return Y
+
+
+def evaluate_accuracy_gpu(net, data_iter, device=None):
+    """ 使用GPU计算模型在数据集上的表现 """
+    if isinstance(net, torch.nn.Module):
+        net.eval()  # 设置为评估模式
+        if not device:
+            device = next(iter(net.parameters())).device  # 设置为网络第一个参数所在的设备
+    metric = Accumulator(2)
+    for X, y in data_iter:
+        if isinstance(X, list):
+            X = [x.to(device) for x in X]
+        else:
+            X = X.to(device)
+        y = y.to(device)
+        metric.add(accuracy(net(X), y), y.numel())
+    return metric[0] / metric[1]
